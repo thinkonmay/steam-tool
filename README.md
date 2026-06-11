@@ -6,6 +6,23 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OpenSteam001/OpenSteamTool)
 
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <a href="README.md"><img src="https://flagcdn.com/256x192/us.png" width="48" alt="United States Flag"></a>
+        <br>
+        <a href="README.md">English</a>
+      </td>
+      <td align="center">
+        <a href="README_ES.md"><img src="https://flagcdn.com/256x192/es.png" width="48" alt="Spain Flag"></a>
+        <br>
+        <a href="README_ES.md">Español</a>
+      </td>
+    </tr>
+  </table>
+</div>
+
 OpenSteamTool is a Windows DLL project built with CMake.
 
 ## Feature
@@ -26,10 +43,11 @@ OpenSteamTool is a Windows DLL project built with CMake.
 
 ### Compatible with games protected by Denuvo and SteamStub
 - SteamStub-only games do not require configuring `AppTicket`. OpenSteamTool can reuse Steam's local ConfigStore ticket and forge the requested AppId through a SteamDRMP off-by-four ticket parsing vulnerability, without injecting into the game process.
-- Denuvo-protected games still require explicit ticket data. In `HKEY_CURRENT_USER\Software\Valve\Steam\Apps\{AppId}`, both `AppTicket` and `ETicket` are `REG_BINARY` values.
-- Use `setAppTicket(appid, "hex")` and `setETicket(appid, "hex")` in Lua config to write these values to the registry automatically.
-- AppTicket priority: explicit tickets have the highest priority, including tickets configured by `setAppTicket` and existing `AppTicket` registry values. If no explicit AppTicket is available, OpenSteamTool falls back to the forged local ConfigStore ticket path.
-- SteamID priority: read `SteamID` as `REG_SZ` (numeric-only) first; if missing, parse from explicit `AppTicket`.
+- Denuvo-protected games still require explicit ticket data. OpenSteamTool stores `AppTicket` and `ETicket` through the platform credential store.
+- Use `setAppTicket(appid, "hex")` and `setETicket(appid, "hex")` in Lua config to write these values to the platform credential store automatically.
+- Denuvo verification has a 30-minute validity window. After this window expires, authorization may fail with Denuvo error code `88500005`; refresh the ticket data before retrying.
+- AppTicket priority: explicit tickets have the highest priority, including tickets configured by `setAppTicket` and existing cached `AppTicket` credential values. If no explicit AppTicket is available, OpenSteamTool falls back to the forged local ConfigStore ticket path.
+- SteamID priority: read cached `SteamID` first; if missing, parse from explicit `AppTicket`. On Windows, the credential store backend currently uses `HKCU\Software\Valve\Steam\Apps\<AppId>`. The Linux backend is not implemented yet.
 
 #### Extracting tickets with `extract_tickets`
 
@@ -89,9 +107,9 @@ addtoken(1361510,"2764735786934684318") -- add access token ("276473578693468431
 setManifestid(1361511,"5656605350306673283") -- pin depotid:1361511 manifest_gid:5656605350306673283, size defaults to 0
 setManifestid(1361511,"5656605350306673283", 12345678) -- same but with explicit size
 
-setAppTicket(1361510,"0100000000000000...") -- write AppTicket (REG_BINARY) to HKCU\Software\Valve\Steam\Apps\1361510\AppTicket
+setAppTicket(1361510,"0100000000000000...") -- write AppTicket to the credential store; on Windows: HKCU\Software\Valve\Steam\Apps\1361510\AppTicket
 
-setETicket(1361510,"0100000000000000...") -- write ETicket (REG_BINARY) to HKCU\Software\Valve\Steam\Apps\1361510\ETicket
+setETicket(1361510,"0100000000000000...") -- write ETicket to the credential store; on Windows: HKCU\Software\Valve\Steam\Apps\1361510\ETicket
 
 setStat(1361510, "76561197960287930") -- use the specified SteamID's achievement data for appid 1361510
 -- If not configured, default SteamID 76561198028121353 is used.
@@ -103,6 +121,7 @@ All function names are **case-insensitive**. `setAppTicket`, `setappticket`, `Se
 
 Rename `opensteamtool.example.toml` to `opensteamtool.toml` and place it in the Steam root directory (next to `steam.exe`).
 If no config file is found, built-in defaults are used — no auto-creation.
+The file is watched while Steam is running; valid changes are hot-reloaded without restarting Steam.
 
 ```toml
 [log]
