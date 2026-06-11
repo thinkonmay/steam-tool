@@ -1,5 +1,6 @@
 #include "include/RemoteProcess.h"
 
+#include "include/Encoding.h"
 #include "include/Log.h"
 #include "include/PE.h"
 
@@ -123,7 +124,7 @@ std::optional<uintptr_t> ResolveRemoteExport(
         module = FindModule(modules, L"kernelbase.dll");
     }
     if (!module) {
-        OSTP_LOG_WARN("ResolveRemoteExport: module '{}' not found", std::string(moduleName.begin(), moduleName.end()));
+        OSTP_LOG_WARN("ResolveRemoteExport: module '{}' not found", Encoding::WideToUtf8(moduleName));
         return std::nullopt;
     }
 

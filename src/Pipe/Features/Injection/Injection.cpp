@@ -18,9 +18,14 @@ namespace {
     std::mutex g_mutex;
     std::unordered_set<ProcessKey, ProcessKeyHash> g_injected;
 
-    bool ClaimInjection(const ProcessKey& key) {
+    bool WasInjected(const ProcessKey& key) {
         std::scoped_lock lock(g_mutex);
-        return g_injected.insert(key).second;
+        return g_injected.contains(key);
+    }
+
+    void MarkInjected(const ProcessKey& key) {
+        std::scoped_lock lock(g_mutex);
+        g_injected.insert(key);
     }
 
     std::filesystem::path ResolveLibraryPath(const std::string& configured) {
@@ -55,11 +60,12 @@ void Apply(const PipeContext& ctx) {
     const auto architecture = OSTPlatform::RemoteProcess::GetArchitecture(ctx.process.pid);
     const std::string* configuredLibrary = ConfiguredLibraryFor(settings, architecture);
     if (!configuredLibrary) return;
-    if (!ClaimInjection(ctx.process)) return;
+    if (WasInjected(ctx.process)) return;
 
     const std::filesystem::path libraryPath = ResolveLibraryPath(*configuredLibrary);
     const auto status = OSTPlatform::RemoteProcess::InjectLibrary(ctx.process.pid, libraryPath);
     if (status == OSTPlatform::RemoteProcess::InjectStatus::Ok) {
+        MarkInjected(ctx.process);
         LOG_PIPE_INFO("Injection: injected {} library into pid={} path={}",
                       OSTPlatform::RemoteProcess::ToString(architecture), ctx.process.pid, libraryPath.string());
     } else {

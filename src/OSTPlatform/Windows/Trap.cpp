@@ -57,14 +57,20 @@ PCONTEXT AsWindowsContext(void* nativeContext) {
     return static_cast<PCONTEXT>(nativeContext);
 }
 
-bool TryReadStackSlot(uintptr_t address, uint64_t& out) {
+bool TryReadStackSlotRaw(uintptr_t address, uint64_t& out) {
     __try {
         out = *reinterpret_cast<const uint64_t*>(address);
         return true;
     } __except (EXCEPTION_EXECUTE_HANDLER) {
-        OSTP_LOG_TRACE("TryReadStackSlot({:#x}) failed", address);
         return false;
     }
+}
+
+bool TryReadStackSlot(uintptr_t address, uint64_t& out) {
+    if (TryReadStackSlotRaw(address, out)) return true;
+
+    OSTP_LOG_TRACE("TryReadStackSlot({:#x}) failed", address);
+    return false;
 }
 
 } // namespace

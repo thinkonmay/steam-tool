@@ -1,5 +1,6 @@
 #include "include/Http.h"
 
+#include "include/Encoding.h"
 #include "include/Log.h"
 #include "include/Numbers.h"
 
@@ -93,7 +94,7 @@ Result Execute(const wchar_t* method,
     if (!hConnect) {
         OSTP_LOG_WARN("{} - WinHttpConnect(host='{}', port={}) failed (error={})",
                       url ? url : "",
-                      std::string(pu.host.begin(), pu.host.end()),
+                      Encoding::WideToUtf8(pu.host),
                       pu.port,
                       GetLastError());
         WinHttpCloseHandle(hSession);
