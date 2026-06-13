@@ -1,29 +1,33 @@
-# OpenSteamTool
-
-![cpp](https://img.shields.io/badge/cpp-20%2B-green?logo=cplusplus)
-![CMake](https://img.shields.io/badge/CMake-3.20%2B-green?logo=cmake)
-![OnlyWindows](https://img.shields.io/badge/windows%20only-red?style=for-the-badge)
-
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OpenSteam001/OpenSteamTool)
-
 <div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <a href="README.md"><img src="https://flagcdn.com/256x192/us.png" width="48" alt="United States Flag"></a>
-        <br>
-        <a href="README.md">English</a>
-      </td>
-      <td align="center">
-        <a href="README_ES.md"><img src="https://flagcdn.com/256x192/es.png" width="48" alt="Spain Flag"></a>
-        <br>
-        <a href="README_ES.md">Español</a>
-      </td>
-    </tr>
-  </table>
-</div>
+  <img src="docs/logo-animated.svg" width="180" alt="OpenSteamTool logo">
 
-OpenSteamTool is a Windows DLL project built with CMake.
+  <h1>OpenSteamTool</h1>
+
+  <p>
+    <strong>Open-Source Steam Unlock Tool</strong>
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/C%2B%2B-20%2B-2ea44f?logo=cplusplus&logoColor=white" alt="C++ 20+">
+    <img src="https://img.shields.io/badge/CMake-3.20%2B-2ea44f?logo=cmake&logoColor=white" alt="CMake 3.20+">
+    <img src="https://img.shields.io/badge/Windows-only-d73a49?logo=windows&logoColor=white" alt="Windows only">
+    <a href="https://deepwiki.com/OpenSteam001/OpenSteamTool">
+      <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki">
+    </a>
+  </p>
+
+  <p>
+    <a href="README.md">
+      <img src="https://flagcdn.com/w40/us.png" width="22" alt="United States flag">
+      English
+    </a>
+    &nbsp;|&nbsp;
+    <a href="README_ES.md">
+      <img src="https://flagcdn.com/w40/es.png" width="22" alt="Spain flag">
+      Español
+    </a>
+  </p>
+</div>
 
 ## Feature
 
@@ -85,10 +89,7 @@ The `extract_tickets` tool dumps the `AppTicket` and `ETicket` hex strings you n
 - Add `-onlinefix` to the Steam launch parameters to enable 480-based online play in games that use lobby matchmaking. The current limitation is that only one such game can run at a time.To revert, simply remove -onlinefix from the launch parameters — online play returns to normal on the next launch.
 
 ## Future
-- For games protected by Denuvo and SteamStub, find a safe timing to switch `GetSteamID` (see `src/Hook/Hooks_IPC.cpp#Handler_IClientUser_GetSteamID` TODO) so save files are not affected.(**Suggestions welcome — when is the earliest point after game initialization that we can safely switch the
-  SteamID without affecting save file binding?**)
 - Steam Cloud synchronization support.(This is a huge project)
-- Add Auto Denuvo Authorization Sharing for Legitimate Accounts.
 
 ## Usage
 1. Run `build.bat` from the project root to build the project.
