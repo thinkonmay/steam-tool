@@ -42,6 +42,10 @@
 ### Hot Reload
 - Adding, modifying, deleting, or overwriting `.lua` files in any watched directory automatically triggers a reload. No restart, no offline/online toggle needed.
 
+### Injection
+- Add optional game-process library injection through `[inject]` in `opensteamtool.toml`.
+- Configure `enabled`, `library_x64`, and `library_x86`; the injected library must match the target process architecture.`library_x64` and `library_x86` may be absolute paths, or relative paths resolved from the Steam root directory.
+
 ### Family Sharing and Remote Play
 - Bypass Steam Family Sharing restrictions for games that have been added to the library with `addappid` in Lua. All accounts in the Steam Family that participate in sharing must use OpenSteamTool for this to work.
 
@@ -145,6 +149,13 @@ timeout_recv_ms    = 10000
 [lua]
 paths = []
 
+[inject]
+# Optional library injection into game processes.
+# The injected library must match the target process architecture.
+enabled = false
+# library_x64 = "OpenSteamTool.GameHook.x64.dll"
+# library_x86 = "OpenSteamTool.GameHook.x86.dll"
+
 # Optional metadata mirror. See "Steam version compatibility" below.
 [remote]
 # url_template = "https://your.server/{channel}/{component}/{sha256}.toml"
@@ -207,18 +218,21 @@ Debug builds write per-module log files under `<Steam>/opensteamtool/`:
 
 | File | Source | Content |
 |------|--------|---------|
-| `main.log`          | General | Init, config loading, Lua parsing,Utils |
+| `main.log`          | General | Init, config loading, Lua parsing, utilities |
 | `ipc.log`           | `LOG_IPC_*` | IPC commands, InterfaceCall dispatch, spoofing |
 | `netpacket.log`     | `LOG_NETPACKET_*` | Network packet send/recv, eMsg dispatch |
-| `manifest.log`      | `LOG_MANIFEST_*` | Manifest download, `fetch_manifest_code`,manifest binding |
+| `manifest.log`      | `LOG_MANIFEST_*` | Manifest download, `fetch_manifest_code`, manifest binding |
 | `decryptionkey.log` | `LOG_DECRYPTIONKEY_*` | Depot decryption key injection |
 | `keyvalue.log`      | `LOG_KEYVALUE_*` | KeyValues patching (manifest binding) |
 | `misc.log`          | `LOG_MISC_*` | Engine pointer capture, AppId hints |
-| `winhttp.log`       | `LOG_WINHTTP_*` | HTTP requests  |
 | `achievement.log`   | `LOG_ACHIEVEMENT_*` | UserStats requests/responses, steamid spoofing |
 | `pics.log`          | `LOG_PICS_*` | PICS access token injection |
 | `package.log`       | `LOG_PACKAGE_*` | Package injection, FileWatcher events |
 | `onlinefix.log`     | `LOG_ONLINEFIX_*` | Online fix (480 AppId spoofing) |
+| `richpresence.log`  | `LOG_RICHPRESENCE_*` | Rich Presence packet construction and injection |
+| `steamui.log`       | `LOG_STEAMUI_*` | SteamUI hook diagnostics |
+| `pipe.log`          | `LOG_PIPE_*` | Pipe handshakes, process inspection, Denuvo authorization, library injection |
+| `platform.log`      | `LOG_PLATFORM_*` | Platform helper diagnostics, including remote-process operations |
 
 The log level is controlled by `[log] level` in `opensteamtool.toml`.
 

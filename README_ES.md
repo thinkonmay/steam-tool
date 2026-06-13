@@ -42,6 +42,10 @@
 ### Recarga rápida
 - Añadir, modificar, eliminar o sobrescribir archivos `.lua` en cualquier directorio supervisado activa automáticamente una recarga. No se necesita reiniciar ni alternar entre modo desconectado/conectado.
 
+### Inyección
+- Añade inyección opcional de bibliotecas en procesos de juego mediante `[inject]` en `opensteamtool.toml`.
+- Configura `enabled`, `library_x64` y `library_x86`; la biblioteca inyectada debe coincidir con la arquitectura del proceso de destino.`library_x64` y `library_x86` pueden ser rutas absolutas, o rutas relativas resueltas desde el directorio raíz de Steam.
+
 ### Préstamo familiar y juego en remoto
 - Omite las restricciones de Steam Family Sharing para los juegos que se hayan añadido a la biblioteca con `addappid` en Lua. Todas las cuentas de la familia de Steam que participen en el préstamo familiar deben usar OpenSteamTool para que esto funcione.
 
@@ -121,6 +125,7 @@ Los nombres de todas las funciones **no distinguen entre mayúsculas y minúscul
 ### Configuración (opcional)
 Cambia el nombre de `opensteamtool.example.toml` a `opensteamtool.toml` y colócalo en el directorio raíz de Steam (junto a `steam.exe`).
 Si no se encuentra ningún archivo de configuración, se utilizarán los valores predeterminados integrados; no se creará ninguno de forma automática.
+El archivo se supervisa mientras Steam está en ejecución; los cambios válidos se recargan en caliente sin reiniciar Steam.
 
 ```toml
 [log]
@@ -142,6 +147,13 @@ timeout_recv_ms    = 10000
 # La carpeta predeterminada siempre se carga al final para que los archivos del usuario tengan prioridad.
 [lua]
 paths = []
+
+[inject]
+# Inyección opcional de bibliotecas en procesos de juego.
+# La biblioteca inyectada debe coincidir con la arquitectura del proceso de destino.
+enabled = false
+# library_x64 = "OpenSteamTool.GameHook.x64.dll"
+# library_x86 = "OpenSteamTool.GameHook.x86.dll"
 
 # Espejo (mirror) de metadatos opcional. Consulta "Compatibilidad con versiones de Steam" más abajo.
 [remote]
@@ -202,8 +214,8 @@ url_template = "https://tu.servidor/{channel}/{component}/{sha256}.toml"
 
 Las compilaciones de depuración (Debug) escriben archivos de registro independientes por módulo dentro de `<Steam>/opensteamtool/`:
 
-| File | Source | Content |
-|------|--------|---------|
+| Archivo | Fuente | Contenido |
+|---------|--------|-----------|
 | `main.log`          | General | Inicialización, carga de configuración, análisis de Lua, utilidades |
 | `ipc.log`           | `LOG_IPC_*` | Comandos IPC, despacho de InterfaceCall, suplantación (spoofing) |
 | `netpacket.log`     | `LOG_NETPACKET_*` | Envío/recepción de paquetes de red, despacho de eMsg |
@@ -211,13 +223,16 @@ Las compilaciones de depuración (Debug) escriben archivos de registro independi
 | `decryptionkey.log` | `LOG_DECRYPTIONKEY_*` | Inyección de claves de descifrado de depósitos (depots) |
 | `keyvalue.log`      | `LOG_KEYVALUE_*` | Parcheo de KeyValues (vinculación de manifiestos) |
 | `misc.log`          | `LOG_MISC_*` | Captura de punteros del motor, sugerencias de AppId |
-| `winhttp.log`       | `LOG_WINHTTP_*` | Solicitudes HTTP  |
 | `achievement.log`   | `LOG_ACHIEVEMENT_*` | Solicitudes/respuestas de UserStats, suplantación de steamid |
 | `pics.log`          | `LOG_PICS_*` | Inyección de tokens de acceso PICS |
 | `package.log`       | `LOG_PACKAGE_*` | Inyección de paquetes, eventos de FileWatcher |
 | `onlinefix.log`     | `LOG_ONLINEFIX_*` | Parche en línea (suplantación del AppId 480) |
+| `richpresence.log`  | `LOG_RICHPRESENCE_*` | Construcción e inyección de paquetes Rich Presence |
+| `steamui.log`       | `LOG_STEAMUI_*` | Diagnósticos de hooks de SteamUI |
+| `pipe.log`          | `LOG_PIPE_*` | Handshakes de pipe, inspección de procesos, autorización de Denuvo, inyección de bibliotecas |
+| `platform.log`      | `LOG_PLATFORM_*` | Diagnósticos de utilidades de plataforma, incluidas operaciones sobre procesos remotos |
 
-El nivel de registro se controla mediante el `parámetro level en la sección [log]` dentro de `opensteamtool.toml`.
+El nivel de registro se controla mediante `[log] level` en `opensteamtool.toml`.
 
 ## Compilación
 
