@@ -21,7 +21,7 @@ bool InitializeSteamComponents()
     sprintf_s(SteamclientPath, kRuntimePathCapacity, "%s\\steamclient64.dll",  SteamInstallPath);
     sprintf_s(SteamUIPath,     kRuntimePathCapacity, "%s\\steamui.dll",        SteamInstallPath);
     sprintf_s(DiversionPath,   kRuntimePathCapacity, "%s\\bin\\diversion.dll", SteamInstallPath);
-    sprintf_s(LuaDir,          kRuntimePathCapacity, "%s\\config\\lua",        SteamInstallPath);
+    sprintf_s(LuaDir,          kRuntimePathCapacity, "%s\\config\\stplug-in",  SteamInstallPath);
     sprintf_s(ConfigPath,      kRuntimePathCapacity, "%s\\opensteamtool.toml", SteamInstallPath);
     
     client_hModule = OSTPlatform::DynamicLibrary::Load(SteamclientPath);
@@ -85,24 +85,41 @@ static uint32_t InitThread(OSTPlatform::DynamicLibrary::ModuleHandle selfModule)
     return 0;
 }
 
+// Lifecycle entry points. Either the standalone OpenSteamTool.dll's own DllMain
+// (classic 3-file layout) or a merged proxy DLL's DllMain (OST_MERGED_PROXY)
+// drives these.
+void OpenSteamToolStart(void* selfModule)
+{
+    // Hand off all real work to a worker thread to avoid running file I/O,
+    // module loading and detour transactions under the loader lock.
+    OSTPlatform::Thread::StartDetached([module = reinterpret_cast<OSTPlatform::DynamicLibrary::ModuleHandle>(selfModule)] {
+        return InitThread(module);
+    });
+}
+
+void OpenSteamToolStop()
+{
+    ConfigFileWatcher::Stop();
+    LuaFileWatcher::Stop();
+    SteamUI::CoreUnhook();
+    SteamClient::CoreUnhook();
+}
+
+#ifndef OST_MERGED_PROXY
+// Only compiled for the standalone OpenSteamTool.dll. When merged into a proxy
+// DLL, that proxy owns DllMain and calls OpenSteamToolStart/Stop instead.
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, PVOID pvReserved)
 {
     if (dwReason == DLL_PROCESS_ATTACH)
     {
         DisableThreadLibraryCalls(hModule);
-        // Hand off all real work to a worker thread to avoid running file I/O,
-        // module loading and detour transactions under the loader lock.
-        OSTPlatform::Thread::StartDetached([module = reinterpret_cast<OSTPlatform::DynamicLibrary::ModuleHandle>(hModule)] {
-            return InitThread(module);
-        });
+        OpenSteamToolStart(hModule);
     }
     else if (dwReason == DLL_PROCESS_DETACH)
     {
-        ConfigFileWatcher::Stop();
-        LuaFileWatcher::Stop();
-        SteamUI::CoreUnhook();
-        SteamClient::CoreUnhook();
+        OpenSteamToolStop();
     }
 
     return TRUE;
 }
+#endif // OST_MERGED_PROXY

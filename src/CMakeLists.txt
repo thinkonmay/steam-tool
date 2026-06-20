@@ -97,8 +97,10 @@ add_subdirectory(OSTPlatform)
 # All Windows-only by construction (PE DLL hijacking + Win32 hooking).
 # ---------------------------------------------------------------------------
 
-# OpenSteamTool — the hook DLL injected into Steam (always 64-bit).
-add_library(OpenSteamTool SHARED
+# Shared OpenSteamTool payload sources. Linked into BOTH the standalone
+# OpenSteamTool.dll (classic 3-file layout) and the self-contained xinput1_4.dll
+# (merged single-file build, see OST_MERGED_PROXY below).
+set(OST_PAYLOAD_SOURCES
     dllmain.cpp
 
     # Shared utilities
@@ -145,6 +147,9 @@ add_library(OpenSteamTool SHARED
     "${PROTO_GEN_DIR}/steam_messages.pb.cc"
 )
 
+# OpenSteamTool — the hook DLL injected into Steam (always 64-bit).
+add_library(OpenSteamTool SHARED ${OST_PAYLOAD_SOURCES})
+
 # Header search path — per-config include directory
 target_include_directories(OpenSteamTool PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -174,9 +179,44 @@ add_library(dwmapi SHARED
 )
 
 # ---------------------------------------------------------------------------
-# xinput1_4.dll hijack — secondary loader DLL placed alongside Steam.
+# xinput1_4.dll — SELF-CONTAINED single-file build. The whole OpenSteamTool
+# payload is linked directly into this proxy DLL, so deploying just this one
+# file into the Steam directory is enough (no separate OpenSteamTool.dll). The
+# xinput wrapper loads the real System32\xinput1_4.dll by absolute path, so
+# there is no proxy self-recursion (unlike the dwmapi forwarder approach).
 # ---------------------------------------------------------------------------
 add_library(xinput1_4 SHARED
+    ${OST_PAYLOAD_SOURCES}
     xinput1_4/xinput1_4.cpp
     xinput1_4/xinput1_4.def
+)
+target_include_directories(xinput1_4 PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/$<CONFIG>
+)
+target_link_libraries(xinput1_4 PRIVATE
+    OSTPlatform
+    lua_static
+    $<$<CONFIG:Debug>:libprotobuf>
+    $<$<CONFIG:Release>:libprotobuf-lite>
+    tomlplusplus::tomlplusplus
+    $<$<CONFIG:Debug>:spdlog::spdlog>
+)
+target_compile_definitions(xinput1_4 PRIVATE
+    OST_MERGED_PROXY
+    $<$<CONFIG:Debug>:OPENSTEAMTOOL_LOGGING_ENABLED>
+)
+
+# Ship the merged DLL as xinput1_4.dll so Steam auto-loads it via DLL hijack.
+# A non-"xinput1_4" name would NOT be auto-loaded and would require an explicit
+# LoadLibrary or manual injection.
+set_target_properties(xinput1_4 PROPERTIES OUTPUT_NAME "xinput1_4")
+
+# ---------------------------------------------------------------------------
+# Redirect the three shipped DLLs' Release output to build/Release4.
+# Only these targets are affected; dependency targets keep their defaults.
+# ---------------------------------------------------------------------------
+set_target_properties(OpenSteamTool dwmapi xinput1_4 PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release4"
 )

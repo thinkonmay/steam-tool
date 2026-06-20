@@ -3,6 +3,12 @@
 #include <cstring>
 #include <string>
 
+#ifdef OST_MERGED_PROXY
+// Self-contained build: the OpenSteamTool payload is linked into this DLL, so
+// we start it directly instead of LoadLibrary'ing a separate OpenSteamTool.dll.
+#include "dllmain.h"
+#endif
+
 // ─── 1. Real XInput Function Pointers ───────────────────────────
 static HMODULE g_hRealXInput = nullptr;
 
@@ -135,8 +141,28 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, PVOID pvReserved) {
     case DLL_PROCESS_ATTACH:
         DisableThreadLibraryCalls(hModule);
         LoadRealXInput();
+#ifdef OST_MERGED_PROXY
+        {
+            // Only start the tool inside steam.exe; for any other host that just
+            // needs xinput1_4, stay a transparent wrapper.
+            char exePath[MAX_PATH];
+            bool isSteam = true;
+            if (GetModuleFileNameA(NULL, exePath, MAX_PATH)) {
+                const char* exeName = strrchr(exePath, '\\');
+                exeName = exeName ? exeName + 1 : exePath;
+                isSteam = (_stricmp(exeName, "steam.exe") == 0);
+            }
+            if (isSteam) OpenSteamToolStart(hModule);
+        }
+#else
         if (!OpenSteamToolLoad()) return FALSE;
+#endif
         break;
+#ifdef OST_MERGED_PROXY
+    case DLL_PROCESS_DETACH:
+        OpenSteamToolStop();
+        break;
+#endif
     }
     return TRUE;
 }

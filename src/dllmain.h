@@ -39,4 +39,10 @@ inline char ConfigPath[kRuntimePathCapacity]       = {};
 // The fake AppId used by -onlinefix (SpaceWar).
 constexpr AppId_t kOnlineFixAppId = 480;
 
+// Implemented in dllmain.cpp. Lets a merged proxy DLL (built with
+// OST_MERGED_PROXY) start/stop the tool directly, instead of loading a
+// separate OpenSteamTool.dll via LoadLibrary. selfModule is the proxy's HMODULE.
+void OpenSteamToolStart(void* selfModule);
+void OpenSteamToolStop();
+
 #endif // DLLMAIN_H
